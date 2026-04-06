@@ -1,4 +1,4 @@
-# Submission
+﻿# Submission
 
 ## Assumptions & priorities
 
@@ -77,4 +77,5 @@ The current behavior is safe and functional, but for production I would further 
 ### Did you use AI tools? If yes, how?
 
 Yes. I used AI tools to accelerate implementation, structure reviews, and technical writing support.
+For sanitization specifically, the initial AI-generated approach was not secure enough for my quality bar, so I revised it manually with stricter threat checks, stronger normalization/coercion rules, and dedicated tests.
 Final architectural decisions, trade-offs, and requirement validation were reviewed manually against the challenge brief.
