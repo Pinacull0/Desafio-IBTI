@@ -286,6 +286,15 @@ export function validateStringValue(
   value: unknown,
   options: StringValidationOptions = {},
 ): boolean {
+  const rawInput = forceToString(value);
+
+  if (
+    options.rejectThreatPayloads &&
+    (containsPotentialXss(rawInput) || containsPotentialSqlInjection(rawInput))
+  ) {
+    return false;
+  }
+
   const sanitized = coerceToSafeDisplayString(value, {
     required: true,
     allowEmpty: false,
@@ -301,12 +310,6 @@ export function validateStringValue(
   if (options.pattern && !options.pattern.test(sanitized)) {
     return false;
   }
-  if (
-    options.rejectThreatPayloads &&
-    (containsPotentialXss(sanitized) || containsPotentialSqlInjection(sanitized))
-  ) {
-    return false;
-  }
   return true;
 }
 
@@ -319,7 +322,11 @@ export function sanitizeUnknownDeep(
   }
 
   if (validateValueType(value, "string")) {
-    return coerceToSafeDisplayString(value);
+    const sanitized = coerceToSafeDisplayString(value);
+    if (!sanitized) {
+      return sanitized;
+    }
+    return stripGenericHtmlTags(sanitized);
   }
   if (validateValueType(value, "number")) {
     return forceToNumber(value);
@@ -435,4 +442,8 @@ function sanitizeObjectKey(key: string, depth: number): string {
     return `key_${depth}`;
   }
   return normalized.slice(0, 64);
+}
+
+function stripGenericHtmlTags(value: string): string {
+  return value.replace(/<[^>]*>/g, " ").replace(/\s{2,}/g, " ").trim();
 }

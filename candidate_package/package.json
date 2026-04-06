@@ -1,0 +1,26 @@
+{
+  "name": "candidate_package",
+  "version": "1.0.0",
+  "description": "Voce ira refatorar e melhorar uma implementacao existente para torna-la escalavel, robusta e de facil manutencao, enquanto toma **decisoes razoaveis de produto/engenharia** com uma especificacao incompleta.",
+  "main": "index.js",
+  "scripts": {
+    "test": "vitest run --environment jsdom",
+    "test:watch": "vitest --environment jsdom"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4"
+  },
+  "devDependencies": {
+    "@testing-library/react": "^16.3.2",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "jsdom": "^29.0.1",
+    "typescript": "^6.0.2",
+    "vitest": "^4.1.2"
+  }
+}

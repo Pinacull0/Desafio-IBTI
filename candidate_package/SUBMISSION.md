@@ -3,72 +3,78 @@
 ## Assumptions & priorities
 
 - Priority order:
-  - Build a typed normalization layer first, because payload inconsistency is the main source of runtime risk.
-  - Replace centralized conditional rendering with a registry-based renderer dispatch.
-  - Add required `metric` section type and ensure each section has a dedicated component.
-  - Handle unknown/invalid sections with safe fallback rendering instead of crashes.
+  - First, I addressed the highest risk area: payload normalization and strong typing. Since the input is inconsistent, UI improvements would be fragile without this foundation.
+  - Next, I replaced centralized dispatch with an extensible renderer registry.
+  - Then, I implemented the required new section type (`metric`) and ensured each section type has its own component.
+  - Finally, I completed graceful degradation for invalid/unknown data and added automated tests.
 - Explicit out-of-scope:
-  - No visual design system/CSS polish; focus stayed on architecture and behavior.
-  - No full i18n strategy for fallback/error messages.
-  - No schema validation library integration (e.g. zod/io-ts) due timebox.
+  - I did not focus on visual polish/CSS design. The scope here was architecture and robustness.
+  - I did not implement i18n for fallback messages.
+  - I did not add an external schema-validation layer at the API boundary (for example, zod/io-ts).
 - With more time:
-  - Expand automated coverage (fixtures-driven integration and deeper negative-path rendering assertions).
-  - Introduce schema versioning and migration utilities for legacy contracts.
-  - Add telemetry hooks to count malformed/unknown sections in production payloads.
+  - Expand automated coverage with more fixture scenarios and deeper negative-path cases.
+  - Introduce contract versioning and migration rules for legacy payloads.
+  - Add telemetry to monitor malformed/unknown section frequency in production.
 
 ## Reflective questions
 
 ### What did you change and why?
 
-- Replaced `any`-based rendering logic with explicit TypeScript models (`src/core/types.ts`).
-- Added `normalizeResultData` (`src/core/normalization.ts`) to sanitize and normalize ambiguous payloads before UI rendering.
-- Implemented renderer registry (`src/renderers/sectionRegistry.tsx`) so section dispatch is extensible and not centered on `if/else/switch`.
-- Split each section type into its own component under `src/sections`.
-- Added required `metric` support in parser/renderer/components and included a `metric` sample in `src/mockData.ts`.
-- Added automated tests for normalization and rendering safety in critical scenarios.
-- Added `src/utils/sanitization.ts` with threat detection/neutralization (XSS, obfuscated payloads, SQLi patterns), value/type validation and forced conversion helpers.
+I reorganized the codebase to separate responsibilities: `core` (types and normalization), `renderers` (registry), `sections` (UI components), `utils` (sanitization), and `tests`.
+I made this change because the original implementation concentrated too much logic in one place, making safe extension difficult.
+
+Main changes:
+- Replaced `any`-based flow with explicit TypeScript models (`src/core/types.ts`).
+- Added a normalization step before rendering (`src/core/normalization.ts`).
+- Implemented extensible dispatch through a registry (`src/renderers/sectionRegistry.tsx`), instead of centralized `if/else/switch` logic as the main mechanism.
+- Added the new required `metric` section type with `label` + `value`.
+- Added safe handling for unknown sections and partial payloads without runtime crashes.
+- Added `src/utils/sanitization.ts` for sanitization/coercion/validation and malicious payload mitigation.
+- Added automated tests (currently 14/14 passing).
 
 ### What would you improve next?
 
-- Expand tests around:
-  - mixed list item edge cases
-  - missing `type` and malformed section payloads
-  - fixture-driven integration coverage
-- Add stricter payload contracts at API boundary (schema validation + typed decode errors).
-- Improve UX copy and visual hierarchy for unknown/invalid sections.
+- Cover more edge cases for heterogeneous list items and malformed payloads.
+- Add more fixture-driven integration tests to reduce regression risk.
+- Improve UX/copy strategy for invalid/unknown sections in production contexts.
 
 ### How would you scale this if the number of section types grew ~10x?
 
 - Keep parser and renderer registries as extension points.
-- Add per-section modules (`normalize`, `component`, `tests`) so new types are isolated and low-risk.
-- Optionally move to plugin-like registration so section types can be shipped independently.
+- Standardize a per-section module pattern (parser + component + tests), so each new type remains isolated.
+- If needed, evolve to plugin-like registration to reduce coupling between teams and feature sets.
 
 ### How did you handle unknown/invalid data and ambiguous payloads (e.g. legacy keys, mixed list items)?
 
-- Normalization handles contract ambiguity before render:
-  - `text` supports `content` and legacy `body`.
-  - `list` accepts string items and object items with `text` (optional `meta`).
-  - missing/unsupported section type returns `unknown` section model with reason.
-  - invalid shapes degrade safely (empty list or unknown section), never crash render.
-- Duplicate `id` values are deduplicated for stable React keys (`id__dupN`).
+- I normalize payloads before rendering.
+- `text` supports both `content` and legacy `body`.
+- `list` supports both string items and object items with `text` (optional `meta`).
+- Missing/unknown section types are mapped to `unknown` with a safe fallback.
+- Missing `sections`, null items, or malformed values degrade gracefully without crashes.
+- Duplicate IDs are deduplicated using a suffix (`__dupN`) to keep stable render keys.
 
 ### How would you test this (what cases, what layers - unit vs integration, etc.)?
 
 - Unit tests:
-  - normalization helpers and each section parser.
-  - key generation and duplicate id behavior.
-  - fallback title and fallback unknown section generation.
+  - section normalization rules
+  - fallback behavior
+  - key deduplication
+  - sanitization (XSS, SQLi, coercion, and type/value validation)
 - Component tests:
-  - each section component renders expected content.
-  - unknown section message for unsupported types.
+  - rendering per section type
+  - unknown-section fallback rendering
 - Integration tests:
-  - render full default `data` payload without runtime errors.
-  - render each fixture (`emptyTitle`, `missingSections`, `minimalLegacy`) and assert graceful output.
+  - full render of the default payload
+  - fixture scenarios (empty title, missing sections, legacy payload)
+
+Current result: `npm test` passes with 14/14 tests.
 
 ### Which decision would you revisit first if this went to production tomorrow, and why?
 
-- Unknown/invalid section UX. Current fallback is safe and explicit, but production may need product-approved copy, suppression rules, and monitoring integration to avoid noisy UI while preserving observability.
+I would revisit the UX behavior for invalid/unknown data first.
+The current behavior is safe and functional, but for production I would further align copy, user-facing noise level, and observability (logs/metrics).
 
 ### Did you use AI tools? If yes, how?
 
-- Yes. I used AI for implementation acceleration, architecture structuring, and write-up drafting. Final decisions and tradeoffs were validated against the challenge constraints.
+Yes. I used AI tools to accelerate implementation, structure reviews, and technical writing support.
+Final architectural decisions, trade-offs, and requirement validation were reviewed manually against the challenge brief.
